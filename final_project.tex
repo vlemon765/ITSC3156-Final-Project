@@ -1,0 +1,355 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Define Article %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass{article}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Using Packages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{empheq}
+\usepackage{mdframed}
+\usepackage{booktabs}
+\usepackage{lipsum}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{psfrag}
+\usepackage{pgfplots}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{titlesec}
+\usepackage{etoolbox}
+\usepackage{caption}
+\usepackage{xparse}
+\usepackage{enumitem}
+\usepackage{ragged2e}
+\usepackage{indentfirst}
+\usepackage{float}
+\usepackage{minted}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Other Settings
+\graphicspath{{images/}} %Path To Images
+%%%%%%%%%%%%%%%%%%%%%%%%%% Page Setting %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\geometry{a4paper}
+\titleformat*{\section}{\LARGE\bfseries}
+\titleformat*{\subsection}{\large\bfseries}
+\titleformat*{\subsubsection}{\large\bfseries}
+\titleformat*{\paragraph}{\large\bfseries}
+\titleformat*{\subparagraph}{\large\bfseries}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% Define some useful colors %%%%%%%%%%%%%%%%%%%%%%%%%%
+\definecolor{ocre}{RGB}{243,102,25}
+\definecolor{mygray}{RGB}{243,243,244}
+\definecolor{deepGreen}{RGB}{26,111,0}
+\definecolor{shallowGreen}{RGB}{235,255,255}
+\definecolor{deepBlue}{RGB}{61,124,222}
+\definecolor{shallowBlue}{RGB}{235,249,255}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% Define commands %%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand\orangebox[1]{\fcolorbox{ocre}{mygray}{\hspace{1em}#1\hspace{1em}}} % Orange box
+\newcommand\circitem{\item[$\circ$]}
+\newcommand\fullcircitem{\item[\textbullet]}
+\newcommand{\customimage}[3][centered]{%
+\begin{figure}[htp]
+\centering
+\ifstrequal{#1}{left}{\raggedright}{}%
+\ifstrequal{#1}{right}{\raggedleft}{}%
+\ifx\relax#2\relax
+\includegraphics{#3}
+\else
+\includegraphics[#2]{#3}
+\fi
+\end{figure}
+}
+\newcommand{\hang}[1]{\par\hangindent=0.5in\hangafter=1 #1\par}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% English Environments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newtheoremstyle{mytheoremstyle}{3pt}{3pt}{\normalfont}{0cm}{\rmfamily\bfseries}{}{1em}{{\color{black}\thmname{#1}~\thmnumber{#2}}\thmnote{\,--\,#3}}
+\newtheoremstyle{myproblemstyle}{3pt}{3pt}{\normalfont}{0cm}{\rmfamily\bfseries}{}{1em}{{\color{black}\thmname{#1}~\thmnumber{#2}}\thmnote{\,--\,#3}}
+\theoremstyle{mytheoremstyle}
+\newmdtheoremenv[linewidth=1pt,backgroundcolor=shallowGreen,linecolor=deepGreen,leftmargin=0pt,innerleftmargin=20pt,innerrightmargin=20pt,]{theorem}{Theorem}[section]
+\theoremstyle{mytheoremstyle}
+\newmdtheoremenv[linewidth=1pt,backgroundcolor=shallowBlue,linecolor=deepBlue,leftmargin=0pt,innerleftmargin=20pt,innerrightmargin=20pt,]{definition}{Definition}[section]
+\theoremstyle{myproblemstyle}
+\newmdtheoremenv[linecolor=black,leftmargin=0pt,innerleftmargin=10pt,innerrightmargin=10pt,]{problem}{Problem}[section]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Plotting Settings %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepgfplotslibrary{colorbrewer}
+\pgfplotsset{width=8cm,compat=1.9}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Title & Author %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Predicting Video Game Global Sales}
+\author{Vijay Lemon\\\\ ITSC3156 Final Project}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+    \maketitle
+    \newpage
+    \tableofcontents
+    \newpage
+    \raggedright
+    \setlength{\parindent}{2em}
+    \setlength{\parskip}{1em}
+
+    \section{Introduction}
+    \subsection{Problem Statement}
+    In this project, I set out to understand whether we can reliably predict a video game's global sales using information we already know about the game: things like its genre, platform, publisher, release year, and sometimes its regional sales. 
+    The core goal is to build regression models that estimate total worldwide sales based on these features. At first glance, it seems like a typical supervised learning task, 
+    but it quickly becomes clear that the relationship between features and sales is more complicated than it looks, which makes the problem interesting and worth digging into.
+
+    \subsection{Motivation and Challenges}
+    Predicting game sales matters because it feeds directly into decisions made by publishers, developers, marketers, and even platform holders. 
+    Being able to anticipate how well a new title might sell helps with budgeting, planning releases, and reducing financial risks. 
+    The challenge, though, is that video game performance is influenced by a chaotic mix of trends, player preferences, competitive timing, and platform popularity; none of which behave neatly. 
+    On top of that, the dataset itself has quirks, including highly skewed sales distributions and some built-in relationships between features that can accidentally give models ``shortcut answers'' if we're not careful.
+
+    \subsection{Approach}
+    My approach combines careful data exploration with two straightforward machine learning models, Linear Regression and k-Nearest Neighbors Regression, to see how well they can estimate global sales. 
+    I start by cleaning the dataset, looking for patterns, and identifying any features that might leak information or distort results. Then I train both models, compare their performance, and analyze why one might behave better than the other. 
+    This approach makes sense because it gives me both a simple, interpretable baseline (linear regression) and a more flexible, non-parametric model (k-NN), letting me compare how different learning assumptions handle the messy reality of video game sales.
+
+    \setlength{\parskip}{0em}
+    \newpage
+
+    \section{Data \& Enviornment}
+    \subsection{Dataset Introduction}
+    \noindent The dataset contains over 16,000 rows and the following columns:
+    \begin{itemize}
+        \item \texttt{Rank}: Position in global sales ranking
+        \item \texttt{Name}: Game title
+        \item \texttt{Platform}: Console/PC System
+        \item \texttt{Year}: Release year
+        \item \texttt{Genre}: Game genre
+        \item \texttt{Publisher}: Company that released the game
+        \item \texttt{NA\_Sales}, \texttt{EU\_Sales}, \texttt{JP\_Sales}, \texttt{Other\_Sales}: Regional sales (millions)
+        \item \texttt{Global\_Sales}: Total sales worldwide (millions)
+    \end{itemize}
+
+    \subsection{Dataset Visualization}
+    The heatmap displays a grid where each cell represents the correlation coefficient between two variables, with color intensity indicating the strength and direction of the relationship. 
+    Strong positive correlations appear as darker shades on the positive side of the scale, while strong negative correlations show up as darker shades on the opposite end. 
+    In this particular heatmap, the regional sales features clearly stand out with strong color intensity against \texttt{Global\_Sales}, reflecting high positive correlations. 
+    \texttt{Rank} also shows a notable negative correlation pattern, appearing in contrasting colors relative to the sales variables.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\textwidth]{heatmap.png}
+    \end{figure}
+
+    \subsection{Data Analysis}
+    Although the strong correlations between regional sales and global sales are expected, the heatmap still reveals several subtler patterns that are important for understanding the dataset.
+    One interesting observation is the relationship between the different regional markets themselves. For example, \texttt{NA\_Sales} and \texttt{EU\_Sales} show a very strong correlation, while \texttt{JP\_Sales} has noticeably weaker relationships with both Western markets.
+    This suggests that games successful in Japan don't always follow the same trends as those in North America or Europe, hinting at distinct regional preferences. Another meaningful detail is the correlation between \texttt{Rank} and the sales numbers.
+    The negative correlation confirms that \texttt{Rank} isn't an independent feature, it simply reflects how well a game sells, so including it in a predictive model would leak target information. Finally, the relatively weak correlation between \texttt{Year} and the sales variables implies that 
+    release year alone does't dictate sales performance and may need to be combined with other features to have predictive value.
+
+    \subsection{Data Preprocessing}
+    \begin{itemize}
+        \item Rows with missing values were dropped: \mintinline{python3}|df.dropna(inplace=True)|.
+        \item Year was cast to integer: \mintinline{python3}|df["Year"] = df["Year"].astype(int)|.
+        \item Name and Rank were removed from model inputs to avoid leaking target information from Rank and reduce noise from Name.
+        \item Categorical columns (Platform, Genre, Publisher) were one-hot encoded (or otherwise encoded as described below).
+        \item Numerical features were standardized when required (particularly for k-NN).
+    \end{itemize}
+
+    \section{Method}
+    \subsection{Ordinary Least Squares (Linear Regression)}
+    Linear Regression tries to model \texttt{Global\_Sales} as a weighted combination of all input features. 
+    After encoding categorical variables and preparing the numeric features, the model estimates a vector of coefficients that minimize the overall squared prediction error. The prediction function is:
+    \begin{align*}
+        \hat{y} &= \beta_0 + \beta_1x_1 + \beta_2x_2 + \cdots + \beta_p x_p + \epsilon
+    \end{align*}
+    \noindent where
+    \begin{itemize}
+        \item $x_1, x_2, \ldots, x_p$ are the encoded input features
+        \item $\beta_1, \dots, \beta_p$ are learned feature weights
+        \item $\beta_0$ is the intercept term
+        \item $\epsilon$ is the error term
+    \end{itemize}
+    \noindent The coefficients are chosen to minimize the Mean Squared Error (MSE):
+    \begin{align*}
+        \text{MSE} &= \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+    \end{align*}
+    \noindent Alongside MSE, I also evaluated $\text{R}^2$ (coefficient of determination):
+    \begin{align*}
+        R^2 &= 1 - \frac{\text{RSS}}{\text{TSS}}
+    \end{align*}
+    \noindent where
+    \begin{itemize}
+        \item RSS represents the residual sum of squares
+        \item TSS represents the total sum of squares
+    \end{itemize}
+    \noindent $\text{R}^2$ quantifies how much of variance in global sales the model explains.
+    \begin{itemize}
+        \item A value near 1 means the model captures the trend very well.
+        \item A value near 0 means it performs about as well as predicting the mean.
+        \item A negative value means the model performs worse than predicting the mean.
+    \end{itemize}
+
+    \setlength{\parskip}{1em}
+
+    I selected Linear Regression because it offers a simple, interpretable baseline. If \texttt{Global\_Sales} were governed by straightforward linear relationships, OLS would capture them easily. 
+    However, because the dataset contains strong multicollinearity (especially among regional sales) and high-dimensional one-hot encodings, the model struggles.
+
+    \subsection{Ridge Regression}
+    Because Linear Regression struggled with multicollinearity and the large number of one-hot encoded categorical features, I also used Ridge Regression, which is a regularized version of linear regression.
+    Ridge adds an $L_2$ penalty to the cost function to shrink coefficients and stabilize the model:
+    \begin{align*}
+        \text{Loss} &= \sum_{i=1}^{n} \left(y_i - \hat{y}_i\right)^2 + \lambda \sum_{j=1}^{p} \beta_j^2
+    \end{align*}
+
+    \noindent The extra term
+    \begin{align*}
+        \lambda \sum_{j=1}^{p} \beta_j^2
+    \end{align*}
+    \noindent penalizes extremely large coefficients, preventing the model from overfitting.
+
+    Ridge regression was chosen because it improves stability when features are highly correlated, it handles high-dimensional one-hot encoded data better than OLS, and it often generalizes better on noisy datasets.
+
+    \subsection{k-Nearest Neighbors (k-NN) Regression}
+    k-NN Regression takes a completely different approach: instead of learning a global formula, it predicts the target for each test point by averaging the targets of its $k$ closest neighbors.
+    After feature scaling and one-hot encoding, the distance between a test sample $x$ and training sample $x_i$ is computed by Euclidean distance:
+    \begin{align*}
+        d(x, x_i) &= \sqrt{\sum_{j=1}^{p} (x_j - x_{ij})^2}
+    \end{align*}
+
+    Like with Linear Regression, I evaluate k-NN using both MSE and $\text{R}^2$. The same $\text{R}^2$ formula applies, measuring how much of the variation in global sales is explained by looking at nearby examples.
+    While k-NN does not provide an explicit model, the combination of MSE and $\text{R}^2$ still provides a clear measure of predictive performance.
+    
+    I chose k-NN because it is flexible and can capture nonlinear relationships that Linear Regression cannot. Instead of assuming global linearity, k-NN adapts to local patterns in the data.
+    This is useful for video game sales, where interactions between platform, genre, publisher, and regional popularity often behave inconsistently across the dataset.
+    Its main weaknesses are computational cost and performance degradation in high-dimensional feature spaces, both side effects of the large one-hot encoded feature set.
+
+    \section{Results}
+    \subsection{Experiment Setup}
+    The dataset was first one-hot encoded for categorical variables and kept in numeric form for the regional sales columns. After preprocessing, the feature matrix $X$ contained all predictors except \texttt{Global\_Sales}, which was used as the regression target $y$.
+
+    \noindent To properly evaluate model performance and avoid overfitting, I used a three-way split:
+    \begin{itemize}
+        \item Training set: 64\% of the data
+        \item Validation set: 16\%
+        \item Test set: 20\%
+        \item All splits used \mintinline{python3}|random_state=42|
+    \end{itemize}
+
+    This structure allowed model selection and tuning using the validation set, while the test set remained untouched until final evaluation.
+
+    Because both Ridge Regression and k-NN rely on distance or coefficient magnitudes, feature scaling was applied using scikit's StandardScaler. The scaler was fit only on the training data and then applied to both validation and test sets to ensure no data leakage.
+
+    \subsection{Test Results and Observations}
+    \begin{table}[h!]
+        \centering
+        \begin{tabular}{lcc}
+            \hline
+            \textbf{Metric} & \textbf{Validation} & \textbf{Test} \\
+            \hline
+            MSE & $1.147 \times 10^{-5}$ & $1.209 \times 10^{-5}$ \\
+            $R^2$ & 0.999987 & 0.999993 \\
+            \hline
+        \end{tabular}
+        \caption{Ridge Regression Performance ($\alpha = 10$)}
+    \end{table}
+
+    Ridge Regression performed extremely well on both validation and test sets. Both MSE values are extremely small, indicating that predictions closely match true global sales, and the $\text{R}^2$ values are almost exactly 1.
+
+    The fact that Ridge generalized consistently across validation and test sets suggests that the model is not overfitting and is effectively capturing the structure of the dataset.
+    The regularization term likely helped stabilize the model under strong multicollinearity among the regional sales features.
+
+    \begin{table}[h!]
+        \centering
+        \begin{tabular}{lcc}
+            \hline
+            \textbf{Metric} & \textbf{Validation} & \textbf{Test} \\
+            \hline
+            MSE & 0.1731 & 0.4997 \\
+            $R^2$ & 0.8030 & 0.7133 \\
+            \hline
+        \end{tabular}
+        \caption{k-NN Regression Performance ($k = 5$)}
+    \end{table}
+
+    k-NN Regression achieved moderately strong performance but was clearly worse to Ridge Regression. 
+    Both the validation and test MSEs were much higher, and the $\text{R}^2$ values indicate that k-NN explains far less variance in the target.
+
+    There is also a noticeable drop in performance from validation to test, suggesting that k-NN is somewhat sensitive to the specific distribution of the data and may not generalize as well.
+
+    \subsection{Analysis and Discussion}
+    The results highlight three key findings:
+    
+    \noindent \textbf{1. The dataset is strongly linear.}
+
+    Ridge Regression achieving an $\text{R}^2$ near 1 on both validation and test sets indicates that the relationships between features and \texttt{Global\_Sales} are almost perfectly linear.
+    This makes sense because the regional sales columns contribute additively to \texttt{Global\_Sales}, forming an almost exact linear relationship. Ridge handled this structure extremely well while also preventing coefficient explosion that would occur in unregularized OLS when features are highly correlated.
+
+    \noindent \textbf{2. k-NN struggles because the data is high-dimensional after encoding.}
+
+    \noindent k-NN's performance is limited by:
+    \begin{itemize}
+        \item high dimensionality from one-hot encoding
+        \item noisy categorical interactions
+        \item Euclidean distance becoming less meaningful in sparse feature spaces.
+    \end{itemize}
+
+    Even with scaling, k-NN cannot compete with a strong linear signal. This is consistent with expectations for regression datasets where linear combinations dominate.
+
+    \noindent \textbf{3. Validation performance predicts test performance well.}
+
+    \noindent The three-way split allowed for checking generalization before touching the test set. Both models showed consistent validation-to-test behavior:
+    \begin{itemize}
+        \item Ridge: nearly identical validation and test metrics $\rightarrow$ stable
+        \item k-NN\@: slight performance drop $\rightarrow$ more variance and sensitivity
+    \end{itemize}
+
+    \subsection{Supporting Experiments}
+    \noindent \textbf{A. Three-way data split}
+
+    By reserving a validation set, I ensured that model tuning did not contaminate the test evaluation.
+
+    \noindent \textbf{B. Scaling before training}
+
+    \noindent Both models depend heavily on properly scaled features:
+    \begin{itemize}
+        \item Ridge requires scaling to balance the penalty term across coefficients
+        \item k-NN requires scaling for meaningful distance comparisons
+    \end{itemize}
+    The experiments confirmed that scaling improved stability and performance.
+
+    \noindent \textbf{C. Regularization in Ridge Regression}
+
+    \noindent Testing multiple $\alpha$ values showed that $\alpha$=10 offered strong bias-variance balance. Smaller $\alpha$ values caused instability from multicollinearity, while larger values oversmoothed the model.
+    
+    \noindent \textbf{D. Comparison across validation and test sets}
+
+    \noindent The consistent results across both sets confirmed that the models were not overfitting and that the chosen preprocessing data was effective.
+
+    \newpage
+
+    \section{Conclusion}
+    This project set out to answer a straightforward question: Can we accurately predict global video game sales using the information available about each title?—and the results ended up being surprisingly clear. 
+    Ridge Regression handled the data shape really well, whereas k-NN worked okay but fell short. One after another, they showed just how straight-line most trends are and why location-based numbers tend to run things now.
+
+    From a learning perspective, this project was valuable because it forced me to go beyond simply ``fitting a model'' and really understand how different algorithms interact with data structure, preprocessing, and evaluation design. I learned just how important it is to standardize features, how easily multicollinearity can destabilize a linear model, and why validation sets matter when making decisions about hyperparameters.
+    I also got a better sense of how dramatically high-dimensional one-hot encoded data can affect distance-based algorithms like k-NN.
+
+    The biggest challenges came from the dataset itself: a mix of skewed distributions, redundant features, and categorical variables that explode into dozens (or hundreds) of dummy columns. Early attempts at linear regression completely failed because the model latched onto exact relationships it shouldn't have (like sum of regionals), which sent me down a debugging path involving feature inspection, data leakage checks, and experimenting with regularization.
+    Switching to Ridge Regression and ensuring the preprocessing pipeline was clean resolved these issues and produced the stable results I expected.
+
+    \newpage
+
+    \section{References and Citation}
+    \hang{GeeksforGeeks. ``K-Nearest Neighbor(KNN) Algorithm.'' GeeksforGeeks, 14 Apr. 2017, www.geeksforgeeks.org/machine-learning/k-nearest-neighbours/.}
+
+    \hang{GeeksforGeeks. ``Mean Squared Error.'' GeeksforGeeks, 15 May 2024, www.geeksforgeeks.org/maths/mean-squared-error/.}
+
+    \hang{GeeksforGeeks. ``Ordinary Least Squares (OLS).'' GeeksforGeeks, 8 May 2025, www.geeksforgeeks.org/machine-learning/ordinary-least-squares-ols/.}
+
+    \hang{GeeksforGeeks. ``R Squared | Coefficient of Determination.'' GeeksforGeeks, 6 July 2023, www.geeksforgeeks.org/maths/r-squared/.}
+
+    \hang{Poore, Geoffrey, and Konrad Rudolph. The Minted Package: Highlighted Source Code in L a T E X. 14 May 2025, tug.ctan.org/macros/latex/contrib/minted/minted.pdf.}
+
+    \hang{Zahid Feroze. “Video Games Sale.” Kaggle.com, 2023, www.kaggle.com/datasets/zahidmughal2343/video-games-sale.}
+\end{document}
